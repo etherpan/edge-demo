@@ -12,7 +12,10 @@ var config = {
 };
 firebase.initializeApp(config)
 
-var database = firebase.database()
+var database = firebase.firestore()
+database.settings({
+    timestampsInSnapshots: true
+})
 
 const gamePath = 'game'
 const historyPath = 'history'
@@ -31,12 +34,17 @@ for (var i = players.length - 1; i >= 0; i--) {
 database.collection(gamePath)
     .onSnapshot(function(snapshot) {
         snapshot.docChanges().forEach(function(change) {
-            console.log("Change occured ", change.doc.data())
+        	if (change.type === "modified") {
+                console.log("Change occured ", change.doc.data())
+            }
         })
     })
 
+// call simulate
+simulateGame()
+
 function addPlayerToGame(playerId) {
-    database().ref(gamePath + '/' + playerId).set({
+    database.collection(gamePath).doc(playerId).set({
         kills: 0,
         deaths: 0,
         hp: 100
@@ -45,12 +53,12 @@ function addPlayerToGame(playerId) {
     })
 
     // add player to server history if not exists
-    let histRef = db.collection(historyPath).doc(playerId)
+    let histRef = database.collection(historyPath).doc(playerId)
     histRef.get().then((doc) => {
         if (doc.exists) {
-            console.log('player exists in history')
+            //console.log('player exists in history')
         } else {
-            database().ref(historyPath + '/' + playerId).set({
+            database.collection(historyPath).doc(playerId).set({
                 kills: 0,
                 deaths: 0
             }, {
@@ -66,23 +74,25 @@ function simulateGame() {
     for (let i = 0; i < numRounds; i++) {
         let randIdx = random.random(0, players.length - 1)
         let playerId = players[randIdx]
-        let playerState = state.playerId
-
+        let playerState = state[playerId]
+        console.log(playerState)
         if (playerState == undefined) {
             playerState = {
                 kills: 0,
                 deaths: 0
             }
-            state.playerId = playerState
+            state[playerId] = playerState
         }
+        console.log(state)
         let toss = random.random(0, 1)
         if (toss == 0) {
             playerState.kills = playerState.kills + 1
         } else {
             playerState.deaths = playerState.deaths + 1
         }
-
-        database().ref(gamePath + '/' + playerId).set({
+        console.log(playerState)
+        console.log(state)
+        database.collection(gamePath).doc(playerId).set({
             kills: playerState.kills,
             deaths: playerState.deaths
         }, {

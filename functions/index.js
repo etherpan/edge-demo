@@ -12,44 +12,62 @@ db.settings(settings)
 
 exports.calcHp = functions.firestore.document(gamePath + '/{player}').onUpdate((change, context) => {
     const data = change.after.data()
+    const before = change.before.data()
 
     const player = context.params.player
+
+    //ignore if only change is hp
+    if (data.kills == before.kills && data.deaths == before.deaths) {
+        return
+    }
+
     const histRef = db.collection(historyPath).doc(player)
     let histKills = 0
     let histDeaths = 0
 
     histRef.get().then(function(doc) {
         if (doc.exists) {
-            console.log("Document data:", doc.data())
             histKills = doc.data().kills
             histDeaths = doc.data().deaths
+
+            // calculate HP
+            let hp = 100
+            let totalDeaths = histDeaths + data.deaths
+            let totalKills = histKills + data.kills
+            if (totalDeaths != 0 && totalKills > totalDeaths) {
+                let ratio = totalKills / totalDeaths
+                hp = hp * ratio
+            }
+
+            console.log('calculated hp is: ' + hp)
+
+            // update game
+            db.collection(gamePath).doc(player).set({
+                hp: hp
+            }, {
+                merge: true
+            }).then(function(doc) {
+                console.log('Updated hp for player: ' + player)
+            }).catch(function(error) {
+                console.log("Error updating hp for player: " + player, error)
+            })
+
+            // update history
+            db.collection(historyPath).doc(player).set({
+                kills: totalKills,
+                deaths: totalDeaths
+            }, {
+                merge: true
+            }).then(function(doc) {
+                console.log('Updated history for player: ' + player)
+            }).catch(function(error) {
+                console.log("Error updating history for player: " + player, error)
+            })
+
         } else {
-            // doc.data() will be undefined in this case
-            console.log("No such document!");
+            //console.log("No such document!");
         }
     }).catch(function(error) {
         console.log("Error getting document:", error)
-    })
-
-    // calculate HP
-    let hp = 1
-    if (histDeaths != 0 && histKills > histDeaths) {
-    	let ratio = histKills / histDeaths
-    	hp = hp * ratio
-    }
-
-    // update game
-    db.collection(gamePath).doc(player).set({
-        hp: hp
-    }, {
-        merge: true
-    })
-
-	// update history
-    db.collection(historyPath).doc(player).set({
-        kills: histKills + data.kills,
-        deaths: histDeaths + data.deaths
-    }, {
-        merge: true
     })
 })
