@@ -30,12 +30,12 @@ for (var i = players.length - 1; i >= 0; i--) {
     addPlayerToGame(players[i])
 }
 
-// listen for hp updates
+// listen for updates
 database.collection(gamePath)
     .onSnapshot(function(snapshot) {
         snapshot.docChanges().forEach(function(change) {
         	if (change.type === "modified") {
-                console.log("Change occured ", change.doc.data())
+                console.log("Player update received from firebase for player " + change.doc.id + " with update", change.doc.data())
             }
         })
     })
@@ -75,7 +75,7 @@ function simulateGame() {
         let randIdx = random.random(0, players.length - 1)
         let playerId = players[randIdx]
         let playerState = state[playerId]
-        console.log(playerState)
+        //console.log(playerState)
         if (playerState == undefined) {
             playerState = {
                 kills: 0,
@@ -83,7 +83,7 @@ function simulateGame() {
             }
             state[playerId] = playerState
         }
-        console.log(state)
+        //console.log(state)
         let toss = random.random(0, 1)
         if (toss == 0) {
             playerState.kills = playerState.kills + 1

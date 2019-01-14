@@ -39,7 +39,7 @@ exports.calcHp = functions.firestore.document(gamePath + '/{player}').onUpdate((
                 hp = hp * ratio
             }
 
-            console.log('calculated hp is: ' + hp)
+            console.log('calculated hp for player ' + player + ' is: ' + hp)
 
             // update game
             db.collection(gamePath).doc(player).set({
