@@ -23,7 +23,7 @@ for (var i = players.length - 1; i >= 0; i--) {
 let query = new Parse.Query('Player')
 let subscription = query.subscribe()
 subscription.on('update', (player) => {
-    console.log("Player update received from picolo", JSON.stringify(player))
+    console.log("Player update received from picolo for", JSON.stringify(player))
 })
 
 // call simulate
@@ -38,7 +38,7 @@ function addPlayerToGame(playerId) {
 
     player.save()
         .then((plr) => {
-            console.log('New player created with name: ' + playerId)
+            //console.log('New player created with name: ' + playerId)
         }, (error) => {
             console.error('Failed to create new player, with error code: ' + error.message)
         })
@@ -49,7 +49,7 @@ function addPlayerToGame(playerId) {
     query.first().then(function(result) {
         //console.log('result is', results)
         if (result) {
-            console.log('player ' + playerId + ' exists in history')
+            //console.log('player ' + playerId + ' exists in history')
         } else {
             let histPlayer = new HistPlayer()
             histPlayer.set("name", playerId)
@@ -58,7 +58,7 @@ function addPlayerToGame(playerId) {
 
             histPlayer.save()
                 .then((plr) => {
-                    console.log('New player created in history with name: ' + playerId)
+                    //console.log('New player created in history with name: ' + playerId)
                 }, (error) => {
                     console.error('Failed to create new player in history with error code: ' + error.message)
                 })
