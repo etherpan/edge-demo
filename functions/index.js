@@ -10,11 +10,13 @@ const settings = {
 }
 db.settings(settings)
 
-exports.calcHp = functions.firestore.document(gamePath + '/{player}').onUpdate((change, context) => {
-    const data = change.after.data()
-    const before = change.before.data()
+exports.calculateHp = functions.https.onRequest((req, res) => {
+	console.log('request is', req)
+	console.log('body is', req.body)
+    const data = req.body.after
+    const before = req.body.before
 
-    const player = context.params.player
+    const player = data.name
 
     //ignore if only change is hp
     if (data.kills == before.kills && data.deaths == before.deaths) {

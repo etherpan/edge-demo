@@ -1,4 +1,5 @@
 const random = require('lodash')
+const request = require('request')
 
 // Initialize Firebase
 var firebase = require("firebase")
@@ -34,7 +35,7 @@ for (var i = players.length - 1; i >= 0; i--) {
 database.collection(gamePath)
     .onSnapshot(function(snapshot) {
         snapshot.docChanges().forEach(function(change) {
-        	if (change.type === "modified") {
+            if (change.type === "modified") {
                 console.log("Player update received from firebase for player " + change.doc.id + " with update", change.doc.data())
             }
         })
@@ -74,30 +75,54 @@ function simulateGame() {
     for (let i = 0; i < numRounds; i++) {
         let randIdx = random.random(0, players.length - 1)
         let playerId = players[randIdx]
-        let playerState = state[playerId]
-        //console.log(playerState)
-        if (playerState == undefined) {
-            playerState = {
+        let playerStateBefore = state[playerId]
+            //console.log(playerStateBefore)
+        if (playerStateBefore == undefined) {
+            playerStateBefore = {
                 kills: 0,
                 deaths: 0
             }
-            state[playerId] = playerState
+            state[playerId] = playerStateBefore
         }
         //console.log(state)
+        let playerStateAfter = {
+            kills: 0,
+            deaths: 0
+        }
         let toss = random.random(0, 1)
         if (toss == 0) {
-            playerState.kills = playerState.kills + 1
+            playerStateAfter.kills = playerStateBefore.kills + 1
         } else {
-            playerState.deaths = playerState.deaths + 1
+            playerStateAfter.deaths = playerStateBefore.deaths + 1
         }
-        console.log(playerState)
+        playerStateAfter.name = playerId
+        state[playerId] = playerStateAfter
+        console.log(playerStateAfter)
         console.log(state)
         database.collection(gamePath).doc(playerId).set({
-            kills: playerState.kills,
-            deaths: playerState.deaths
+            kills: playerStateAfter.kills,
+            deaths: playerStateAfter.deaths
         }, {
             merge: true
+        }).then(function(data) {
+            //calculate hp
+            var postData = {
+                before: playerStateBefore,
+                after: playerStateAfter
+            }
+            var url = 'https://us-central1-edge-9bfdc.cloudfunctions.net/calculateHp'
+            var options = {
+                method: 'post',
+                body: postData,
+                json: true,
+                url: url
+            }
+            request(options, function(err, res, body) {
+                if (err) {
+                    console.error('error calling cloud function: ', err)
+                    throw err
+                }
+            })
         })
     }
-
 }

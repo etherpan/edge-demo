@@ -48,9 +48,8 @@ const HistPlayer = Parse.Object.extend("HistPlayer")
 
 // create 10 players
 let players = ['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8', 'a9', 'a10']
-//let players = ['vnhCyA58hn', 'Dccu1Cu4K3', 'vAor7yXnIg', 'GnakfhHHy7', 'YCjy9IhKMB', 'NCKtU3Vfqz', 'IA0nMowxHK', 'ZIiGoqG3C5', '6sGTtgtmDf', 'XAIJDJtXgX']
 for (var i = players.length - 1; i >= 0; i--) {
-    //addPlayerToGame(players[i])
+    addPlayerToGame(players[i])
 }
 
 // listen for updates
@@ -107,33 +106,44 @@ function simulateGame() {
     for (let i = 0; i < numRounds; i++) {
         let randIdx = random.random(0, players.length - 1)
         let playerId = players[randIdx]
-        let playerState = state[playerId]
-        //console.log(playerState)
-        if (playerState == undefined) {
-            playerState = {
+        let playerStateBefore = state[playerId]
+        //console.log(playerStateBefore)
+        if (playerStateBefore == undefined) {
+            playerStateBefore = {
                 kills: 0,
                 deaths: 0
             }
-            state[playerId] = playerState
+            state[playerId] = playerStateBefore
         }
         //console.log(state)
+        let playerStateAfter = {
+            kills: 0,
+            deaths: 0
+        }
         let toss = random.random(0, 1)
         if (toss == 0) {
-            playerState.kills = playerState.kills + 1
+            playerStateAfter.kills = playerStateBefore.kills + 1
         } else {
-            playerState.deaths = playerState.deaths + 1
+            playerStateAfter.deaths = playerStateBefore.deaths + 1
         }
-        console.log(playerState)
+        state[playerId] = playerStateAfter
+        console.log(playerStateAfter)
         console.log(state)
 
         let query = new Parse.Query(Player)
         query.equalTo("name", playerId)
         query.first().then(function(player) {
-            player.set("kills", playerState.kills)
-            player.set("deaths", playerState.deaths)
+            player.set("kills", playerStateAfter.kills)
+            player.set("deaths", playerStateAfter.deaths)
             player.save()
                 .then((plr) => {
                     console.log('Player with playerId: ' + playerId + ' updated')
+                    //calculate hp
+                    let params = {}
+                    params.before = playerStateBefore
+                    params.after = playerStateAfter
+                    params.after.name = playerId
+                    Parse.Cloud.run("calcHp", params)    
                 }, (error) => {
                     console.log('Failed to update player, with error code: ' + error.message)
                 })

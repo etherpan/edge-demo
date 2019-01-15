@@ -1,42 +1,9 @@
-Parse.Cloud.beforeSave("Player", (request) => {
-    //console.log(JSON.stringify(request))
-    let query = new Parse.Query('Player')
-    let objStr = JSON.stringify(request.object)
-    const data = JSON.parse(objStr)
-    query.equalTo("name", data.name)
-
-    query.first().then((player) => {
-        //console.log('player is ' + JSON.stringify(player))
-        if (player === undefined) {
-            return
-        }
-        request.context = {
-            before: {
-                kills: player.get("kills"),
-                deaths: player.get("deaths"),
-                hp: player.get("hp")
-            }
-        }
-    }, (error) => {
-        console.log('Error retrieving object for player', request.object.name)
-    })
-})
-
-Parse.Cloud.afterSave("Player", (request) => {
-    //console.log(JSON.stringify(request))
-    let objStr = JSON.stringify(request.object)
-    const data = JSON.parse(objStr)
-    const before = request.context.before
-    let hp = 100
-
+Parse.Cloud.define("calcHp", function(req) {
+    const data = req.params.after
+    const before = req.params.before
     const playerId = data.name
 
-    //ignore if only change is hp
-    if (before) {
-        console.log('--------------------------------before--------------------------------------')
-        console.log(data.kills, before.kills, data.deaths, before.deaths)
-    }
-    if (before && (data.kills == before.kills && data.deaths == before.deaths)) {
+    if (data.kills == before.kills && data.deaths == before.deaths) {
         console.log('before after same')
         return
     }
@@ -66,19 +33,17 @@ Parse.Cloud.afterSave("Player", (request) => {
         console.log('calculated hp is: ' + hp)
 
         // update game
-        if (hp != 100) {
-            let query1 = new Parse.Query('Player')
-            query1.equalTo("name", playerId)
-            query1.first().then(function(player) {
-                player.set("hp", hp)
-                player.save()
-                    .then((plr) => {
-                        console.log('Updated hp for player: ' + playerId)
-                    }, (error) => {
-                        console.log("Error updating hp for player: " + playerId, error)
-                    })
-            })
-        }
+        let query1 = new Parse.Query('Player')
+        query1.equalTo("name", playerId)
+        query1.first().then(function(player) {
+            player.set("hp", hp)
+            player.save()
+                .then((plr) => {
+                    console.log('Updated hp for player: ' + playerId)
+                }, (error) => {
+                    console.log("Error updating hp for player: " + playerId, error)
+                })
+        })
 
         // update history
         let query2 = new Parse.Query('HistPlayer')
@@ -96,4 +61,5 @@ Parse.Cloud.afterSave("Player", (request) => {
     }).catch(function(error) {
         console.log("Error getting history", error)
     })
+    return 0
 })
